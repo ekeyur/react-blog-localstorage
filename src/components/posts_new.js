@@ -2,78 +2,52 @@ import React, { Component } from 'react';
 import { Field, reduxForm } from 'redux-form';
 import { Link } from 'react-router-dom';
 import { connect } from 'react-redux';
-import { createPost } from '../actions';
+import { createPost, fetchPost } from '../actions';
+import Title from '../distributed_form_components/title';
+import Categories from '../distributed_form_components/categories';
+import Content from '../distributed_form_components/content';
+import { validate } from './validate';
 
 class PostsNew extends Component {
 
-  renderField(field){
-    const { meta: { touched, error } } = field;
-    const className = `form-group ${touched && error ? 'has-danger' : ''}`
-    return (
-      <div className={className}>
-        <label htmlFor="">{field.label}</label>
-        <input
-          className="form-control"
-          type="text" 
-          {...field.input}
-        />
-        <div className="text-help" style={{ fontSize : '.7em' }}>
-          { touched ? error : '' }
-        </div>
-      </div>
-    )
+  componentDidMount() {
+    if(this.props.params){
+      const { id } = this.props.match.params;
+      this.props.fetchPost(id);
+    }
   }
 
   onSubmit = values => {
-    this.props.createPost(values, () => {
-      this.props.history.push('/')
-    });
+    if(values.id) {
+      console.log('there is id present', values);
+    } else {
+      this.props.createPost(values, () => {
+        this.props.history.push('/')
+        });
+    }
   }
 
   render() {
-    const { handleSubmit } = this.props;
+    const { handleSubmit, invalid, submitting, pristine } = this.props;
     return (
       <form onSubmit={handleSubmit(this.onSubmit)}>
-        <Field
-          label="Title"
-          name="title"
-          component={this.renderField}
-        />
-        <Field
-          label="Categories"
-          name="categories"
-          component={this.renderField}
-        />
-        <Field
-          label="Post Content"
-          name="content"
-          component={this.renderField}
-        />
-        <button type="submit" className="btn btn-primary">Submit</button>
+        <Title />
+        <Categories />
+        <Content />
+        <button type="submit" disabled={ invalid || submitting || pristine } className="btn btn-primary">Submit</button>
         <Link to="/" className="btn btn-danger">Cancel</Link>
       </form>
     )
   }
 }
 
-const validate = (values) => {
-  const errors = {};
-
-  if(!values.title) {
-    errors.title = "Enter a title!";
-  }
-  if(!values.categories) {
-    errors.categories = "Enter some categories!";
-  }
-  if(!values.content) {
-    errors.content = "Enter some content please!";
-  } 
-  return errors;
+const mapStateToProps = ( { posts }, ownProps ) => {
+  return { initialValues: posts[ownProps.match.params.id] };
 }
 
-export default reduxForm({
-  validate,
-  form: 'PostsNewForm'
-})(
-  connect(null, { createPost })(PostsNew)
-);
+export default connect( mapStateToProps, { createPost, fetchPost } )(
+  reduxForm({
+    form: 'PostsNewForm',
+    validate,
+  })(PostsNew)
+)
